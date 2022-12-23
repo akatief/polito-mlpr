@@ -27,3 +27,12 @@ def pair_plot(X,y,columns=None):
                         axs[feat1, feat2].set_ylabel(columns[feat2])
     plt.tight_layout()
     plt.show()
+
+
+def plot_2d(X, y):
+    assert X.shape[1] == 2, 'Dataset is not 2D!'
+    labels = np.unique(y)
+    for l in labels:
+        plt.scatter(X[y == l][0], X[y == l][1])
+    plt.legend(labels)
+    plt.show()
