@@ -21,8 +21,8 @@ class TransformerBase(ABC):
         raise NotImplementedError('fit method was not implemented!')
 
     def fit_transform(self, X, y=None):
-        self.fit(X)
-        return self.transform(X)
+        self.fit(X,y)
+        return self.transform(X,y)
 
 
 
