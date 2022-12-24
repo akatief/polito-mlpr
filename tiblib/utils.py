@@ -22,7 +22,7 @@ class TransformerBase(ABC):
 
     def fit_transform(self, X, y=None):
         self.fit(X,y)
-        return self.transform(X,y)
+        return self.transform(X)
 
 
 
