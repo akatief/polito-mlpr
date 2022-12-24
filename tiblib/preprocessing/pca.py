@@ -1,5 +1,4 @@
 import numpy as np
-
 from tiblib import TransformerBase, covariance
 
 
