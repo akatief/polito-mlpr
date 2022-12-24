@@ -3,10 +3,11 @@ from abc import abstractmethod, ABC
 import numpy as np
 
 
-def covariance(X: np.ndarray):
-    X_centered = X - np.mean(X, axis=0)
+def covariance(X):
+    # X should have samples as columns
+    X_centered = X - np.mean(X, axis=1).reshape(-1,1)
     N = X_centered.shape[1]
-    cov = 1 / N * (X_centered @ X_centered.T).T
+    cov = 1 / N * (X_centered @ X_centered.T)
     return cov
 
 
