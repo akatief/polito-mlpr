@@ -33,6 +33,6 @@ def plot_2d(X, y):
     assert X.shape[1] == 2, 'Dataset is not 2D!'
     labels = np.unique(y)
     for l in labels:
-        plt.scatter(X[y == l][0], X[y == l][1])
+        plt.scatter(X[y == l, 0], X[y == l, 1])
     plt.legend(labels)
     plt.show()
