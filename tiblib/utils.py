@@ -19,7 +19,7 @@ class TransformerBase(ABC):
 
     @abstractmethod
     def transform(self, X):
-        raise NotImplementedError('fit method was not implemented!')
+        raise NotImplementedError('transform method was not implemented!')
 
     def fit_transform(self, X, y):
         self.fit(X,y)
