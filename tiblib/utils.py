@@ -1,6 +1,9 @@
+import warnings
 from abc import abstractmethod, ABC
 
 import numpy as np
+from sklearn.metrics import accuracy_score
+from sklearn.datasets import load_iris
 
 
 def covariance(X):
@@ -22,7 +25,7 @@ class TransformerBase(ABC):
         raise NotImplementedError('transform method was not implemented!')
 
     def fit_transform(self, X, y):
-        self.fit(X,y)
+        self.fit(X, y)
         return self.transform(X)
 
 
@@ -35,3 +38,32 @@ class ClassifierBase(ABC):
     @abstractmethod
     def predict(self, X):
         raise NotImplementedError('fit method was not implemented!')
+
+    def score(self, X, y, metric=accuracy_score):
+        return metric(y, self.predict(X))
+
+
+
+def train_test_split(X, y, test_size, seed=0):
+    assert test_size <= 1, 'test_size is more than 100%'
+    n_samples, n_feats = X.shape
+    if n_feats > n_samples:
+        warnings.warn("This method expects samples as rows. Are you sure X is not transposed?")
+    n_train = int(n_samples * test_size)
+    np.random.seed(seed)
+    idx = np.random.permutation(n_samples)
+    idx_train = idx[0:n_train]
+    idx_test = idx[n_train:]
+    X_train = X[idx_train]
+    X_test = X[idx_test]
+    y_train = y[idx_train]
+    y_test = y[idx_test]
+    return X_train, X_test, y_train, y_test
+
+def load_iris_binary():
+    iris = load_iris()
+    X, y = iris['data'], iris['target']
+    X = X[y != 0] # We remove setosa from D
+    y = y[y!=0] # We remove setosa from L
+    y[y==2] = 0 # We assign label 0 to virginica (was label 2)
+    return X, y
