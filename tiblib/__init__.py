@@ -1,4 +1,4 @@
-from .utils import covariance, train_test_split, load_iris_binary
+from .utils import covariance, train_test_split, load_iris_binary, load_iris_multiclass
 from .utils import TransformerBase, ClassifierBase
 
 
@@ -10,6 +10,7 @@ __all__ = [
     'covariance',
     'train_test_split',
     'load_iris_binary',
+    'load_iris_multiclass',
     'TransformerBase',
     'ClassifierBase'
 ]

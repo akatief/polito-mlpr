@@ -46,10 +46,11 @@ class ClassifierBase(ABC):
 
 def train_test_split(X, y, test_size, seed=0):
     assert test_size <= 1, 'test_size is more than 100%'
+    train_size = 1 - test_size
     n_samples, n_feats = X.shape
     if n_feats > n_samples:
         warnings.warn("This method expects samples as rows. Are you sure X is not transposed?")
-    n_train = int(n_samples * test_size)
+    n_train = int(n_samples * train_size)
     np.random.seed(seed)
     idx = np.random.permutation(n_samples)
     idx_train = idx[0:n_train]
@@ -66,4 +67,9 @@ def load_iris_binary():
     X = X[y != 0] # We remove setosa from D
     y = y[y!=0] # We remove setosa from L
     y[y==2] = 0 # We assign label 0 to virginica (was label 2)
+    return X, y
+
+def load_iris_multiclass():
+    iris = load_iris()
+    X, y = iris['data'], iris['target']
     return X, y
