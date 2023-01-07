@@ -5,7 +5,7 @@ from .utils import TransformerBase, ClassifierBase
 __all__ = [
     'preprocessing',
     'visualization',
-    'linear',
+    'classification',
 
     'covariance',
     'train_test_split',
