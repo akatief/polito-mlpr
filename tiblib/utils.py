@@ -9,7 +9,7 @@ from sklearn.datasets import load_iris
 def covariance(X):
     assert len(X.shape) == 2, 'X is not a 2D matrix'
     # X should have samples as columns
-    X_centered = X - np.mean(X, axis=1).reshape(-1,1)
+    X_centered = X - np.mean(X, axis=1).reshape(-1, 1)
     N = X_centered.shape[1]
     cov = 1 / N * (X_centered @ X_centered.T)
     return cov
@@ -29,7 +29,6 @@ class TransformerBase(ABC):
         return self.transform(X)
 
 
-
 class ClassifierBase(ABC):
     @abstractmethod
     def fit(self, X, y):
@@ -41,7 +40,6 @@ class ClassifierBase(ABC):
 
     def score(self, X, y, metric=accuracy_score):
         return metric(y, self.predict(X))
-
 
 
 def train_test_split(X, y, test_size, seed=0):
@@ -61,15 +59,25 @@ def train_test_split(X, y, test_size, seed=0):
     y_test = y[idx_test]
     return X_train, X_test, y_train, y_test
 
+
 def load_iris_binary():
     iris = load_iris()
     X, y = iris['data'], iris['target']
-    X = X[y != 0] # We remove setosa from D
-    y = y[y!=0] # We remove setosa from L
-    y[y==2] = 0 # We assign label 0 to virginica (was label 2)
+    X = X[y != 0]  # We remove setosa from D
+    y = y[y != 0]  # We remove setosa from L
+    y[y == 2] = 0  # We assign label 0 to virginica (was label 2)
     return X, y
+
 
 def load_iris_multiclass():
     iris = load_iris()
     X, y = iris['data'], iris['target']
     return X, y
+
+
+def GAU_logpdf(x, mu, var):
+    return -0.5 * np.log(2 * np.pi) - 0.5 * np.log(var) - np.power(x - mu, 2) / (2 * var)
+
+
+def logpdf_GAU_ND(x: np.ndarray, mu: np.ndarray, C: np.ndarray):
+    return -x.size / 2 * np.log(2 * np.pi) - 1 / 2 * np.log(np.linalg.det(C)) - 0.5 * (x - mu).T
