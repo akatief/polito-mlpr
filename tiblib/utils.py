@@ -80,4 +80,6 @@ def GAU_logpdf(x, mu, var):
 
 
 def logpdf_GAU_ND(x: np.ndarray, mu: np.ndarray, C: np.ndarray):
-    return -x.size / 2 * np.log(2 * np.pi) - 1 / 2 * np.log(np.linalg.det(C)) - 0.5 * (x - mu).T
+    diff = x - mu
+    _, slog = np.linalg.slogdet(C)
+    return - (x.shape[0] * np.log(2 * np.pi) + slog + np.diagonal(diff.T @ np.linalg.inv(C) @ diff))/2
