@@ -1,4 +1,6 @@
-from .utils import covariance, train_test_split, load_iris_binary, load_iris_multiclass, GAU_logpdf, logpdf_GAU_ND
+from .utils import covariance
+from .utils import train_test_split, logpdf_GAU_ND, logpdf_GMM
+from .utils import load_iris_binary, load_iris_multiclass
 from .utils import TransformerBase, ClassifierBase
 
 
@@ -13,6 +15,6 @@ __all__ = [
     'load_iris_multiclass',
     'TransformerBase',
     'ClassifierBase',
-    'GAU_logpdf',
     'logpdf_GAU_ND',
+    'logpdf_GMM'
 ]

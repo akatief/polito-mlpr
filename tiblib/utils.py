@@ -1,7 +1,9 @@
+import json
 import warnings
 from abc import abstractmethod, ABC
 
 import numpy as np
+import scipy
 from sklearn.metrics import accuracy_score
 from sklearn.datasets import load_iris
 
@@ -75,11 +77,51 @@ def load_iris_multiclass():
     return X, y
 
 
+def load_gmm(filename):
+    with open(filename, 'r') as f:
+        gmm = json.load(f)
+    return [(i, np.asarray(j), np.asarray(k)) for i, j, k in gmm]
+
+
 def GAU_logpdf(x, mu, var):
     return -0.5 * np.log(2 * np.pi) - 0.5 * np.log(var) - np.power(x - mu, 2) / (2 * var)
 
 
 def logpdf_GAU_ND(x: np.ndarray, mu: np.ndarray, C: np.ndarray):
-    diff = x - mu
-    _, slog = np.linalg.slogdet(C)
-    return - (x.shape[0] * np.log(2 * np.pi) + slog + np.diagonal(diff.T @ np.linalg.inv(C) @ diff))/2
+    if mu.ndim == 1: # 1 component case
+        diff = x - mu
+        _, slog = np.linalg.slogdet(C)
+        return - (x.shape[0] * np.log(2 * np.pi) + slog + np.diagonal(diff.T @ np.linalg.inv(C) @ diff))/2
+    else: # Multi component case
+        # mu: n_components x n_feats
+        n_components = mu.shape[0]
+        x = np.array([x] * n_components)
+        mu = mu[:, :, np.newaxis]
+        diff = x - mu
+        _, slog = np.linalg.slogdet(C)
+        slog = slog.reshape(-1,1)
+        const = x.shape[1] * np.log(2 * np.pi)
+        diag_term = np.diagonal(diff.transpose((0, 2, 1)) @ np.linalg.inv(C) @ diff, axis1=1, axis2=2)
+        return - (const + slog + diag_term)/2
+
+
+def logpdf_GMM(X, gmm):
+    '''
+    Computes log density of a gaussian mixture given its parameters
+    Note: gmm is different from what suggested in the lab pdf
+
+    :param X: samples organized by column
+    :param gmm: tuple (W, M, S) containing weights, means, covariances respectively as ndarrays
+    :return:
+    '''
+    W, M, S = gmm
+    assert W.ndim == 1, 'W has wrong number of dimensions'
+    assert M.ndim == 2, 'M has wrong number of dimensions'
+    assert S.ndim == 3, 'S has wrong number of dimensions'
+    assert W.shape[0] == S.shape[0] and W.shape[0] == M.shape[0], 'n_components across W, M, S don\'t match'
+    assert S.shape[1] == M.shape[1], 'Size of covariance matrix and means don\'t match'
+    logscores = logpdf_GAU_ND(X, M, S) + np.log(W).reshape(-1, 1)
+    loglikelihood = scipy.special.logsumexp(logscores, axis=0)
+    # responsibilities = np.exp(logscores) / np.sum(np.exp(logscores), axis=0)
+    responsibilities = np.exp(logscores - loglikelihood)
+    return loglikelihood, responsibilities
