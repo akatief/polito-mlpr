@@ -3,6 +3,7 @@ import warnings
 from abc import abstractmethod, ABC
 
 import numpy as np
+import pandas as pd
 import scipy
 from sklearn.metrics import accuracy_score
 from sklearn.datasets import load_iris
@@ -80,6 +81,14 @@ def load_iris_multiclass():
     X, y = iris['data'], iris['target']
     return X, y
 
+def load_wine():
+    wine_train = pd.read_csv('../datasets/Train.txt', header=None)
+    wine_test = pd.read_csv('../datasets/Test.txt', header=None)
+    X_train = wine_train.iloc[:, :-1].to_numpy()
+    y_train = wine_train.iloc[:, -1].to_numpy()
+    X_test = wine_test.iloc[:, :-1].to_numpy()
+    y_test = wine_test.iloc[:, -1].to_numpy()
+    return X_train, X_test, y_train, y_test
 
 def load_gmm(filename):
     with open(filename, 'r') as f:
