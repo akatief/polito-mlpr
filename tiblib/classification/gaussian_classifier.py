@@ -7,9 +7,9 @@ class GaussianClassifier(ClassifierBase):
 	def __init__(self, num_class, naive=False, tied=False):
 		self.tied = tied
 		self.naive = naive
-		self.mu = np.empty(num_class, dtype = np.ndarray)
-		self.cov = np.empty(num_class, dtype = np.ndarray)
-		self.logSJoint = np.empty(num_class, dtype = np.ndarray)
+		self.mu = None
+		self.cov = None
+		self.logSJoint = None
 		self.num_class = num_class
 		if tied:
 			self.tied_cov = None
@@ -26,7 +26,10 @@ class GaussianClassifier(ClassifierBase):
 		if self.tied:
 			self.tied_cov = cov_list.sum(0) / X.shape[1]
 
+	# TODO: understand if it needs to return scores or logscores
 	def predict(self, X):
+		if self.mu is None:
+			raise ValueError('GaussianClassifier was not fitted on any data!')
 		X = X.T
 		li = []
 		for i in range(self.num_class):
@@ -41,4 +44,3 @@ class GaussianClassifier(ClassifierBase):
 		logSPost = self.logSJoint - logSMarginal
 		SPost = np.exp(logSPost)
 		return np.argmax(SPost, 0).astype(int)
-
