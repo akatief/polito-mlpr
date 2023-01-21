@@ -46,7 +46,7 @@ class BinaryLogisticRegression(ClassifierBase):
         y_pred = score > 0
 
         if return_probs:
-            return y_pred, score, self.f_min
+            return y_pred, score
         else:
             return y_pred
 
@@ -91,14 +91,14 @@ class LogisticRegression(ClassifierBase):
         self.b = p_optim[:, -1].reshape(-1, 1)
         return self
 
-    def predict(self, X, return_probs=False):
+    def predict(self, X, return_score=False):
         if self.w is None or self.b is None:
             raise ValueError('Logistic regression was not fitted on any data!')
         X = X.T
         score = self.w @ X + self.b
         y_pred = np.argmax(score, axis=0)
 
-        if return_probs:
-            return y_pred, score, self.f_min
+        if return_score:
+            return y_pred, score
         else:
             return y_pred
