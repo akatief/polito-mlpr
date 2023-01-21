@@ -11,7 +11,7 @@ def pair_plot(X,y,columns=None):
         warn(f'Samples in X should be rows. Are you sure the dataset is not transposed? Size: {X.shape}')
     if columns is not None:
         assert len(columns) == ncols, 'Size of X does not match number of column names provided'
-    fig, axs = plt.subplots(4,4)
+    fig, axs = plt.subplots(ncols, ncols)
     fig.set_size_inches(18.5, 10.5)
     for feat1 in range(ncols):
         for feat2 in range(ncols):
