@@ -38,7 +38,11 @@ class ClassifierBase(ABC):
 
     @abstractmethod
     def predict(self, X):
-        raise NotImplementedError('transform method was not implemented!')
+        raise NotImplementedError('predict method was not implemented!')
+
+    @abstractmethod
+    def predict_scores(self, X):
+        raise NotImplementedError('predict_scores method was not implemented!')
 
     def score(self, X, y, metric=accuracy_score):
         return metric(y, self.predict(X))

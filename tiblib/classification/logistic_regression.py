@@ -5,10 +5,9 @@ from tiblib import ClassifierBase
 from scipy.special import logsumexp
 
 
-
 class BinaryLogisticRegression(ClassifierBase):
     def __init__(self, l=1):
-        self.l = l # Regularization term
+        self.l = l  # Regularization term
         self.w = None
         self.b = None
         self.f_min = None
@@ -17,7 +16,7 @@ class BinaryLogisticRegression(ClassifierBase):
         labels = np.unique(y)
         labels.sort()
         assert len(labels) == 2, 'Labels are nonbinary'
-        assert np.alltrue(labels == np.array([0,1])), 'Labels are not in format 0/1'
+        assert np.alltrue(labels == np.array([0, 1])), 'Labels are not in format 0/1'
         X = X.T
         n_feats, n_samples = X.shape
         p_init = np.zeros(n_feats + 1)
@@ -25,36 +24,34 @@ class BinaryLogisticRegression(ClassifierBase):
         # Defined inside fit to use X, y and avoid being static
         def objective(p):
             w, b = p[:-1], p[-1]
-            regularization = 0.5 * self.l * np.linalg.norm(w, 2)**2
+            regularization = 0.5 * self.l * np.linalg.norm(w, 2) ** 2
             boundary = (w.T @ X + b)
             zi = y * 2 - 1
             # Uses logaddexp to sum 1 + exp(...) avoiding numerical issues
-            summation = np.sum(np.logaddexp(0,-zi * boundary)) / n_samples
-            return  regularization + summation
+            summation = np.sum(np.logaddexp(0, -zi * boundary)) / n_samples
+            return regularization + summation
+
         p_optim, self.f_min, _ = fmin_l_bfgs_b(objective, p_init, approx_grad=True)
         self.w = p_optim[:-1]
         self.b = p_optim[-1]
         return self
 
-    def predict(self, X, return_probs=False):
-        n_feats, n_samples = X.shape
-
+    def predict_scores(self, X):
         if self.w is None or self.b is None:
             raise ValueError('Logistic regression was not fitted on any data!')
         X = X.T
         score = self.w @ X + self.b
+        return score
+
+    def predict(self, X):
+        score = self.predict_scores(X)
         y_pred = score > 0
-
-        if return_probs:
-            return y_pred, score
-        else:
-            return y_pred
-
+        return y_pred
 
 
 class LogisticRegression(ClassifierBase):
     def __init__(self, l=1):
-        self.l = l # Regularization term
+        self.l = l  # Regularization term
         self.w = None
         self.b = None
         self.f_min = None
@@ -84,6 +81,7 @@ class LogisticRegression(ClassifierBase):
 
             summation = np.sum(onehot_y.T * log_y)
             return regularization - summation / n_samples
+
         p_optim, self.f_min, d = fmin_l_bfgs_b(objective, p_init, approx_grad=True)
         p_optim = p_optim.reshape(n_labels, n_feats + 1)
 
@@ -91,14 +89,14 @@ class LogisticRegression(ClassifierBase):
         self.b = p_optim[:, -1].reshape(-1, 1)
         return self
 
-    def predict(self, X, return_score=False):
+    def predict_scores(self, X):
         if self.w is None or self.b is None:
             raise ValueError('Logistic regression was not fitted on any data!')
         X = X.T
         score = self.w @ X + self.b
-        y_pred = np.argmax(score, axis=0)
+        return score
 
-        if return_score:
-            return y_pred, score
-        else:
-            return y_pred
+    def predict(self, X):
+        score = self.predict_scores(X)
+        y_pred = np.argmax(score, axis=0)
+        return y_pred
