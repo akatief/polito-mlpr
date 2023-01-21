@@ -144,6 +144,10 @@ class GaussianMixtureClassifier(ClassifierBase):
             gmm.fit(X_c)
             self.models[c] = gmm
 
-    def predict(self, X):
+    def predict_scores(self, X):
         logprobs = np.array([gmm.estimate(X) for gmm in self.models.values()])
-        return np.array([list(self.models.keys())[i] for i in np.argmax(logprobs, axis=0)])
+        return logprobs
+
+    def predict(self, X):
+        scores = self.predict_scores(X)
+        return np.array([list(self.models.keys())[i] for i in np.argmax(scores, axis=0)])
