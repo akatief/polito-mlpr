@@ -9,6 +9,7 @@ class LDA(TransformerBase):
         self.U = None
 
     def fit(self, X, y):
+        assert self.n_dims <= len(np.unique(y)) - 1, 'LDA has n_dims > n_classes - 1'
         X = X.T
         Sw = within_class_covariance(X, y)
         Sb = between_class_covariance(X, y)

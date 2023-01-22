@@ -1,7 +1,9 @@
 import json
 import warnings
 from abc import abstractmethod, ABC
+from typing import Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy
@@ -27,9 +29,12 @@ class TransformerBase(ABC):
     def transform(self, X):
         raise NotImplementedError('transform method was not implemented!')
 
-    def fit_transform(self, X, y):
+    def fit_transform(self, X, y=None):
         self.fit(X, y)
         return self.transform(X)
+
+    def __len__(self): # Needed for pipeline
+        return 1
 
 
 class ClassifierBase(ABC):
@@ -42,11 +47,80 @@ class ClassifierBase(ABC):
         raise NotImplementedError('predict method was not implemented!')
 
     @abstractmethod
-    def predict_scores(self, X):
+    def predict_scores(self, X, get_ratio=False):
         raise NotImplementedError('predict_scores method was not implemented!')
 
     def score(self, X, y, metric=accuracy_score):
         return metric(y, self.predict(X))
+
+
+class CVMinDCF:
+    def __init__(self, model, K=5, pi=.5):
+        '''
+        Runs KFold CV on a given model with min DCF as a metric.
+
+        :param model: model to cross-validate
+        :param K: number of folds
+        :param pi: prior over model scores
+        '''
+        self.model = model
+        self.K = K
+        self.scores = []
+        self.best_score = 1
+        self.pi = pi
+
+    def score(self, X, y):
+        if X.shape[0] < X.shape[1]:
+            warnings.warn(f'Samples in X should be rows. Are you sure the dataset is not transposed? Size: {X.shape}')
+        n = X.shape[0]
+        indices = np.arange(n)
+        np.random.shuffle(indices)
+        fold_size = int(n / self.K)
+        for i in range(self.K):
+            val_indices = indices[i * fold_size:(i + 1) * fold_size]
+            train_indices = np.setdiff1d(indices, val_indices)
+            X_train, y_train = X[train_indices], y[train_indices]
+            X_val, y_val = X[val_indices], y[val_indices]
+            self.model.fit(X_train, y_train)
+
+            val_scores = self.model.predict_scores(X_val, get_ratio=True)
+            score, _ = min_detection_cost_func(val_scores, y_val, pi=self.pi)
+            self.scores.append(score)
+            if score < self.best_score:
+                self.best_score = score
+        return self.best_score
+
+
+class Pipeline(ClassifierBase):
+    '''
+    Pipeline class containing n transformers and one final classifier.
+    Used to standardize preprocessing and avoid data leakage
+    '''
+    def __init__(self, transformers: Union[list, TransformerBase] , classifier: ClassifierBase):
+        if len(transformers) == 1 and type(transformers) is not list:
+            self.transformers = [transformers]
+        else:
+            self.transformers = transformers
+        self.classifier = classifier
+
+    def fit(self, X, y):
+        X_transf = X
+        for t in self.transformers:
+            X_transf = t.fit_transform(X_transf)
+        self.classifier.fit(X_transf,y)
+        return self
+
+    def predict(self, X):
+        X_transf = X
+        for t in self.transformers:
+            X_transf = t.transform(X_transf)
+        return self.classifier.predict(X_transf)
+
+    def predict_scores(self, X, get_ratio=False):
+        X_transf = X
+        for t in self.transformers:
+            X_transf = t.transform(X_transf)
+        return self.classifier.predict_scores(X_transf, get_ratio=get_ratio)
 
 
 def train_test_split(X, y, test_size, seed=0):
@@ -137,3 +211,50 @@ def logpdf_GMM(X, gmm):
     # responsibilities = np.exp(logscores) / np.sum(np.exp(logscores), axis=0)
     responsibilities = np.exp(logscores - loglikelihood)
     return loglikelihood, responsibilities
+
+def empirical_bayes_risk(cm, pi=.5, cfn=1, cfp=1):
+    fnr = cm[0, 1] / (cm[0, 1] + cm[1, 1])
+    fpr = cm[1, 0] / (cm[1, 0] + cm[0, 0])
+    return pi * cfn * fnr + (1 - pi) * cfp * fpr
+
+
+def normalized_det_cost_func(cm, pi=.5, cfn=1, cfp=1):
+    dcf = empirical_bayes_risk(cm, pi, cfn, cfp)
+    return dcf / min(pi * cfn, (1 - pi) * cfp)
+
+def optimal_bayes_decision(score, pi=.5, cfn=1, cfp=1):
+    threshold = - np.log(pi / (1 - pi)) + np.log(cfn / cfp)
+    return (score > threshold).astype(int)
+
+
+def detection_cost_func(score, y_true, pi=.5, cfn=1, cfp=1):
+    opt_decision = optimal_bayes_decision(score, pi, cfn, cfp)
+    cm = confusion_matrix(y_true, opt_decision)
+
+    return normalized_det_cost_func(cm, pi, cfn, cfp)
+
+
+def confusion_matrix(y_true, y_pred):
+    assert len(y_true) == len(y_pred), "Inputs must have the same length"
+    n_labels = len(np.unique(y_true))
+    matrix = np.zeros((n_labels, n_labels))
+    for i in range(n_labels):
+        for j in range(n_labels):
+            matrix[i, j] = np.sum((y_true == i) & (y_pred == j))
+    return matrix
+
+def min_detection_cost_func(score, y_true, pi=.5, cfn=1, cfp=1):
+    min_dcf = np.inf
+    opt_t = 0
+
+    dcfs = []
+    for t in np.sort(score):
+        y_pred = (score > t).astype(int)
+        cm = confusion_matrix(y_true, y_pred)
+        norm_dcf = normalized_det_cost_func(cm, pi, cfn, cfp)
+        dcfs.append(norm_dcf)
+        if norm_dcf < min_dcf:
+            min_dcf = norm_dcf
+            opt_t = t
+
+    return min_dcf, opt_t
