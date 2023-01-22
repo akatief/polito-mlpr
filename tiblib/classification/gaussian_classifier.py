@@ -4,21 +4,24 @@ import scipy as sc
 
 
 class GaussianClassifier(ClassifierBase):
-	def predict_scores(self, X):
-		pass
-
-	def __init__(self, num_class, naive=False, tied=False):
+	def __init__(self, naive=False, tied=False):
 		self.tied = tied
 		self.naive = naive
-		self.mu = np.empty(num_class, dtype = np.ndarray)
-		self.cov = np.empty(num_class, dtype = np.ndarray)
-		self.logSJoint = np.empty(num_class, dtype = np.ndarray)
-		self.num_class = num_class
+		self.mu = None
+		self.cov = None
+		self.logSJoint = None
+		self.num_class = None
 		if tied:
 			self.tied_cov = None
 
 	def fit(self, X, y):
 		X = X.T
+		num_class = len(np.unique(y))
+		self.mu = np.empty(num_class, dtype = np.ndarray)
+		self.cov = np.empty(num_class, dtype = np.ndarray)
+		self.logSJoint = np.empty(num_class, dtype = np.ndarray)
+		self.num_class = num_class
+
 		cov_list = np.empty(self.num_class, dtype = np.ndarray)
 		for i in range(self.num_class):
 			data: np.ndarray = X[:, y == i]
@@ -30,6 +33,11 @@ class GaussianClassifier(ClassifierBase):
 			self.tied_cov = cov_list.sum(0) / X.shape[1]
 
 	def predict(self, X):
+		logscores = self.predict_scores(X)
+		SPost = np.exp(logscores)
+		return np.argmax(SPost, 0).astype(int)
+
+	def predict_scores(self, X, get_ratio=False):
 		X = X.T
 		li = []
 		for i in range(self.num_class):
@@ -40,7 +48,10 @@ class GaussianClassifier(ClassifierBase):
 				C = np.diag(np.diag(C))
 			li.append(logpdf_GAU_ND(X, self.mu[i], C) - np.log(self.num_class))
 		self.logSJoint = np.vstack(li)
-		logSMarginal = sc.special.logsumexp(self.logSJoint, axis = 0)
+		logSMarginal = sc.special.logsumexp(self.logSJoint, axis=0)
 		logSPost = self.logSJoint - logSMarginal
-		SPost = np.exp(logSPost)
-		return np.argmax(SPost, 0).astype(int)
+		if get_ratio:
+			assert self.num_class == 2, 'This is not a binary model'
+			return logSPost[1, :] - logSPost[0, :]
+		else:
+			return logSPost #logscores

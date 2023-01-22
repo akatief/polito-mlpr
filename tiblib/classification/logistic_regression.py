@@ -36,7 +36,7 @@ class BinaryLogisticRegression(ClassifierBase):
         self.b = p_optim[-1]
         return self
 
-    def predict_scores(self, X):
+    def predict_scores(self, X, get_ratio=False):
         if self.w is None or self.b is None:
             raise ValueError('Logistic regression was not fitted on any data!')
         X = X.T
@@ -89,7 +89,9 @@ class LogisticRegression(ClassifierBase):
         self.b = p_optim[:, -1].reshape(-1, 1)
         return self
 
-    def predict_scores(self, X):
+    def predict_scores(self, X, get_ratio=False):
+        assert get_ratio == False, 'Multiclass LogisticRegression is not supposed' \
+                                   'to return scores, use BinaryLogisticRegression instead'
         if self.w is None or self.b is None:
             raise ValueError('Logistic regression was not fitted on any data!')
         X = X.T

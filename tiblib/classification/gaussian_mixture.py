@@ -124,7 +124,7 @@ class GaussianMixtureModel:
 
 
 class GaussianMixtureClassifier(ClassifierBase):
-    def __init__(self, algorithm='em', cov_type='full', n_components=3, max_iter=10, alpha=1.0, psi=1e-3, stop_delta=1e-6):
+    def __init__(self, algorithm='em', cov_type='full', n_components=3, max_iter=10, alpha=0.1, psi=1e-3, stop_delta=1e-6):
         self.cov_type = cov_type
         self.psi = psi
         self.alpha = alpha
@@ -132,10 +132,13 @@ class GaussianMixtureClassifier(ClassifierBase):
         self.n_components = n_components
         self.algorithm = algorithm
         self.stop_delta = stop_delta
+        self.n_classes = None
+
 
     def fit(self, X, y):
         self.models = {}  # Dict containing GMM per class
         labels = np.unique(y)
+        self.n_classes = len(labels)
         for c in labels:
             X_c = X[y == c]
             gmm = GaussianMixtureModel(n_components=self.n_components, algorithm=self.algorithm,
@@ -144,9 +147,13 @@ class GaussianMixtureClassifier(ClassifierBase):
             gmm.fit(X_c)
             self.models[c] = gmm
 
-    def predict_scores(self, X):
+    def predict_scores(self, X, get_ratio=False):
         logprobs = np.array([gmm.estimate(X) for gmm in self.models.values()])
-        return logprobs
+        if get_ratio:
+            assert self.n_classes == 2, 'This is not a binary model'
+            return logprobs[1, :] - logprobs[0, :] #llr
+        else:
+            return logprobs  # logscores
 
     def predict(self, X):
         scores = self.predict_scores(X)

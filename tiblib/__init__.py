@@ -1,5 +1,6 @@
-from .utils import covariance
-from .utils import train_test_split, logpdf_GAU_ND, logpdf_GAU_ND_multi_comp, logpdf_GMM
+from .utils import covariance, confusion_matrix, detection_cost_func, min_detection_cost_func
+from .utils import logpdf_GAU_ND, logpdf_GAU_ND_multi_comp, logpdf_GMM
+from .utils import train_test_split, CVMinDCF
 from .utils import load_iris_binary, load_iris_multiclass, load_wine
 from .utils import TransformerBase, ClassifierBase
 
@@ -10,7 +11,11 @@ __all__ = [
     'classification',
 
     'covariance',
+    'confusion_matrix',
+    'detection_cost_func',
+    'min_detection_cost_func',
     'train_test_split',
+    'CVMinDCF',
     'load_iris_binary',
     'load_iris_multiclass',
     'load_wine',
