@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
 
+from tiblib import load_iris_multiclass, train_test_split
+
 
 class SVC:
 	def __init__(self, C=1.0, K= 1.0):
@@ -43,4 +45,22 @@ class SVC:
 		return predictions
 
 
+if __name__ == '__main__':
+	# Create a toy dataset
+	X, y = load_iris_multiclass()
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
+	NOT_CLASS = 2
+	# Create an instance of the SVC class
+	clf = SVC()
+	mask = y_train != NOT_CLASS
+	y_train[y_train == 2] = NOT_CLASS
+	# Fit the classifier to the data
+	clf.fit(X_train[mask], y_train[mask])
+
+	# Predict the labels for a new set of inputs
+	mask = y_test != NOT_CLASS
+	y_test[y_test == 2] = NOT_CLASS
+	predictions = clf.predict(X_test[mask])
+	print(predictions)
+	print((predictions == y_test[mask]).mean())
 
