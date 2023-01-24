@@ -15,6 +15,9 @@ class Pipeline(ClassifierBase):
             self.transformers = transformers
         self.classifier = classifier
 
+    def __str__(self):
+        return str(self.classifier)
+
     def fit(self, X, y):
         X_transf = X
         for t in self.transformers:

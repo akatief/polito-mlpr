@@ -14,6 +14,16 @@ class GaussianClassifier(ClassifierBase):
 		if tied:
 			self.tied_cov = None
 
+	def __str__(self):
+		if self.naive and self.tied:
+			return 'GaussianClassifier (Naive, Tied)'
+		elif self.naive:
+			return 'GaussianClassifier (Naive)'
+		elif self.tied:
+			return 'GaussianClassifier (Tied)'
+		else:
+			return 'GaussianClassifier'
+
 	def fit(self, X, y):
 		X = X.T
 		num_class = len(np.unique(y))

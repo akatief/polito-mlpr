@@ -5,19 +5,18 @@ from tiblib import ClassifierBase
 from scipy.special import logsumexp
 
 
-class BinaryLogisticRegression(ClassifierBase):
+class LogisticRegression(ClassifierBase):
     def __init__(self, l=1):
         self.l = l  # Regularization term
         self.w = None
         self.b = None
         self.f_min = None
+        self.n_labels = None
 
-    def fit(self, X, y):
-        labels = np.unique(y)
-        labels.sort()
-        assert len(labels) == 2, 'Labels are nonbinary'
-        assert np.alltrue(labels == np.array([0, 1])), 'Labels are not in format 0/1'
-        X = X.T
+    def __str__(self):
+        return f'LogReg ($\\lambda = {self.l}$)'
+
+    def _fit_binary(self, X, y):
         n_feats, n_samples = X.shape
         p_init = np.zeros(n_feats + 1)
 
@@ -34,36 +33,8 @@ class BinaryLogisticRegression(ClassifierBase):
         p_optim, self.f_min, _ = fmin_l_bfgs_b(objective, p_init, approx_grad=True)
         self.w = p_optim[:-1]
         self.b = p_optim[-1]
-        return self
 
-    def predict_scores(self, X, get_ratio=False):
-        if self.w is None or self.b is None:
-            raise ValueError('Logistic regression was not fitted on any data!')
-        X = X.T
-        score = self.w @ X + self.b
-        return score
-
-    def predict(self, X):
-        score = self.predict_scores(X)
-        y_pred = score > 0
-        return y_pred
-
-
-class LogisticRegression(ClassifierBase):
-    def __init__(self, l=1):
-        self.l = l  # Regularization term
-        self.w = None
-        self.b = None
-        self.f_min = None
-        self.n_labels = None
-
-    def fit(self, X, y):
-        labels = np.unique(y)
-        labels.sort()
-        assert len(labels) > 1, 'There is less than 2 classes'
-        n_labels = len(labels)
-        self.n_labels = n_labels
-        X = X.T
+    def _fit_multiclass(self, X, y):
         n_feats, n_samples = X.shape
         # W, b of dimensionality KxD, K
         p_init = np.zeros(n_feats * self.n_labels + self.n_labels)
@@ -71,7 +42,7 @@ class LogisticRegression(ClassifierBase):
 
         # Defined inside fit to use X, y and avoid being static
         def objective(p):
-            p = p.reshape(n_labels, n_feats + 1)
+            p = p.reshape(self.n_labels, n_feats + 1)
             W, b = p[:, :-1], p[:, -1]
             b = b.reshape(-1, 1)
             # scores for all classes
@@ -83,22 +54,40 @@ class LogisticRegression(ClassifierBase):
             return regularization - summation / n_samples
 
         p_optim, self.f_min, d = fmin_l_bfgs_b(objective, p_init, approx_grad=True)
-        p_optim = p_optim.reshape(n_labels, n_feats + 1)
+        p_optim = p_optim.reshape(self.n_labels, n_feats + 1)
 
         self.w = p_optim[:, :-1]
         self.b = p_optim[:, -1].reshape(-1, 1)
+
+    def fit(self, X, y):
+        labels = np.unique(y)
+        labels.sort()
+        assert len(labels) > 1, 'There is less than 2 classes'
+        n_labels = len(labels)
+        self.n_labels = n_labels
+        X = X.T
+
+        if n_labels == 2:
+            self._fit_binary(X, y)
+        else:
+            self._fit_multiclass(X, y)
+
         return self
 
     def predict_scores(self, X, get_ratio=False):
-        assert get_ratio == False, 'Multiclass LogisticRegression is not supposed' \
-                                   'to return scores, use BinaryLogisticRegression instead'
         if self.w is None or self.b is None:
             raise ValueError('Logistic regression was not fitted on any data!')
+        if get_ratio:
+            assert self.n_labels == 2, 'Multiclass LogisticRegression is not supposed' \
+                                       'to return scores'
         X = X.T
         score = self.w @ X + self.b
         return score
 
     def predict(self, X):
         score = self.predict_scores(X)
-        y_pred = np.argmax(score, axis=0)
-        return y_pred
+        if self.n_labels == 2:
+            return score > 0
+        else:
+            y_pred = np.argmax(score, axis=0)
+            return y_pred

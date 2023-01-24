@@ -138,13 +138,13 @@ class GaussianMixtureClassifier(ClassifierBase):
 
     def __str__(self):
         if self.diag and self.tied:
-            return 'GMM (Diag, Tied, )'
+            return f'GMM (Diag, Tied, {self.n_components} components, $\\alpha = {self.alpha}$)'
         elif self.diag:
-            return 'GMM (Naive)'
+            return f'GMM (Diag, {self.n_components} components, $\\alpha = {self.alpha}$)'
         elif self.tied:
-            return 'GMM (Tied)'
+            return f'GMM (Tied, {self.n_components} components, $\\alpha = {self.alpha}$)'
         else:
-            return 'GMM'
+            return f'GMM ({self.n_components} components, $\\alpha = {self.alpha}$)'
 
 
     def fit(self, X, y):

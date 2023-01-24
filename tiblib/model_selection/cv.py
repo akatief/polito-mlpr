@@ -4,11 +4,11 @@ from copy import deepcopy
 import numpy as np
 
 from tiblib import min_detection_cost_func, detection_cost_func
-from tiblib.classification import BinaryLogisticRegression
+from tiblib.classification import LogisticRegression
 
 
 def calibrate(score, y_true, _lambda, pi=0.5):
-    lr = BinaryLogisticRegression(l=_lambda)
+    lr = LogisticRegression(l=_lambda)
     lr.fit(score.reshape(-1,1), y_true)
     alpha = lr.w
     beta_p = lr.b
