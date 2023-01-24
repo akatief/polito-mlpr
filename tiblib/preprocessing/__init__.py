@@ -1,11 +1,11 @@
 from .pca import PCA
 from .lda import LDA
-from .kfold import Kfold
 from .gaussianizer import Gaussianizer
+from .scaler import StandardScaler
 
 __all__ = [
     'PCA',
     'LDA',
-    'Kfold',
-    'Gaussianizer'
+    'Gaussianizer',
+    'StandardScaler'
 ]

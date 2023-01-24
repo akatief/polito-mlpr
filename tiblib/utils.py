@@ -9,7 +9,6 @@ import scipy
 from sklearn.metrics import accuracy_score
 from sklearn.datasets import load_iris
 
-
 def covariance(X):
     assert len(X.shape) == 2, 'X is not a 2D matrix'
     # X should have samples as columns
@@ -51,43 +50,6 @@ class ClassifierBase(ABC):
 
     def score(self, X, y, metric=accuracy_score):
         return metric(y, self.predict(X))
-
-
-class CVMinDCF:
-    def __init__(self, model, K=5, pi=.5):
-        '''
-        Runs KFold CV on a given model with min DCF as a metric.
-
-        :param model: model to cross-validate
-        :param K: number of folds
-        :param pi: prior over model scores
-        '''
-        self.model = model
-        self.K = K
-        self.scores = []
-        self.best_score = 1
-        self.pi = pi
-
-    def score(self, X, y):
-        if X.shape[0] < X.shape[1]:
-            warnings.warn(f'Samples in X should be rows. Are you sure the dataset is not transposed? Size: {X.shape}')
-        n = X.shape[0]
-        indices = np.arange(n)
-        np.random.shuffle(indices)
-        fold_size = int(n / self.K)
-        for i in range(self.K):
-            val_indices = indices[i * fold_size:(i + 1) * fold_size]
-            train_indices = np.setdiff1d(indices, val_indices)
-            X_train, y_train = X[train_indices], y[train_indices]
-            X_val, y_val = X[val_indices], y[val_indices]
-            self.model.fit(X_train, y_train)
-
-            val_scores = self.model.predict_scores(X_val, get_ratio=True)
-            score, _ = min_detection_cost_func(val_scores, y_val, pi=self.pi)
-            self.scores.append(score)
-            if score < self.best_score:
-                self.best_score = score
-        return self.best_score
 
 
 def train_test_split(X, y, test_size, seed=0):
