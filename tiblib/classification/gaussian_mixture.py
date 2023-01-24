@@ -6,12 +6,13 @@ from tiblib import ClassifierBase, logpdf_GMM, load_iris_multiclass, train_test_
 
 
 class GaussianMixtureModel:
-    def __init__(self, algorithm='em', cov_type='full', n_components=3,
+    def __init__(self, algorithm='em', tied=False, diag=False, n_components=3,
                  filename=None, alpha=1.0, psi=1e-3, stop_delta=1e-6):
         self.n_components = n_components
         self.alpha = alpha
         self.psi = psi
-        self.cov_type = cov_type
+        self.tied = tied
+        self.diag = diag
         self.stop_delta = stop_delta
 
         if filename is None:
@@ -75,15 +76,15 @@ class GaussianMixtureModel:
             self.covariances = S / Z[:, np.newaxis, np.newaxis] - np.einsum('ci,cj->cij', self.means, self.means)
 
             # Enforce structure on covariance
-            if self.cov_type == 'diag':
-                self.covariances = self.covariances * np.eye(self.covariances.shape[1])[np.newaxis, :, :]
-            if self.cov_type == 'tied':
+            if self.tied:
                 self.covariances = 1 / n_samples * np.tile(np.sum(self.covariances * Z[:,np.newaxis, np.newaxis], axis=0), (self.curr_components,1,1))
+            if self.diag:
+                self.covariances = self.covariances * np.eye(self.covariances.shape[1])[np.newaxis, :, :]
 
             # Bound covariance
             U, s, _ = np.linalg.svd(self.covariances)
             s[s < self.psi] = self.psi
-            self.covariances = U @ (s[:,:,np.newaxis] * U.transpose(0,2,1))
+            self.covariances = U @ (s[:,:,np.newaxis] * U.transpose(0,2,1)) * self.alpha
 
             loglikelihood, responsibilities = logpdf_GMM(X, (self.weights, self.means, self.covariances))
             sum_ll = np.sum(loglikelihood)
@@ -124,8 +125,9 @@ class GaussianMixtureModel:
 
 
 class GaussianMixtureClassifier(ClassifierBase):
-    def __init__(self, algorithm='em', cov_type='full', n_components=3, max_iter=10, alpha=0.1, psi=1e-3, stop_delta=1e-6):
-        self.cov_type = cov_type
+    def __init__(self, algorithm='lbg', tied=False, diag=False, n_components=3, max_iter=10, alpha=0.1, psi=1e-3, stop_delta=1e-6):
+        self.tied = tied
+        self.diag = diag
         self.psi = psi
         self.alpha = alpha
         self.max_iter = max_iter
@@ -133,6 +135,16 @@ class GaussianMixtureClassifier(ClassifierBase):
         self.algorithm = algorithm
         self.stop_delta = stop_delta
         self.n_classes = None
+
+    def __str__(self):
+        if self.diag and self.tied:
+            return 'GMM (Diag, Tied, )'
+        elif self.diag:
+            return 'GMM (Naive)'
+        elif self.tied:
+            return 'GMM (Tied)'
+        else:
+            return 'GMM'
 
 
     def fit(self, X, y):
@@ -142,7 +154,7 @@ class GaussianMixtureClassifier(ClassifierBase):
         for c in labels:
             X_c = X[y == c]
             gmm = GaussianMixtureModel(n_components=self.n_components, algorithm=self.algorithm,
-                                       alpha=self.alpha, psi=self.psi, cov_type=self.cov_type,
+                                       alpha=self.alpha, psi=self.psi, tied=self.tied, diag=self.diag,
                                        stop_delta=self.stop_delta)
             gmm.fit(X_c)
             self.models[c] = gmm
