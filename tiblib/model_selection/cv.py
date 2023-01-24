@@ -1,10 +1,11 @@
 import warnings
 from copy import deepcopy
+from itertools import product
 
 import numpy as np
 
 from tiblib import min_detection_cost_func, detection_cost_func
-from tiblib.classification import LogisticRegression
+from tiblib.classification import LogisticRegression, Pipeline
 
 
 def calibrate(score, y_true, _lambda, pi=0.5):
@@ -14,7 +15,6 @@ def calibrate(score, y_true, _lambda, pi=0.5):
     beta_p = lr.b
     cal_score = alpha * score + beta_p - np.log(pi / (1 - pi))
     return cal_score
-
 
 
 class Kfold:
@@ -94,3 +94,18 @@ def CVCalibration(model, X, y, K=5, pi=.5, _lambda=1e-3):
             best_act_score = act_score
             best_model = deepcopy(model)
     return best_score, best_act_score, best_model
+
+
+def grid_cv(X, y, pi, preprocessings, classifier, hyperparams):
+    for pr in preprocessings:
+        print([str(p) for p in pr]) # Prints current preprocessings in string form
+
+        keys, values = zip(*hyperparams.items())
+        combinations = [dict(zip(keys, combination)) for combination in product(*values)]
+
+        for params in combinations:
+            c = classifier(**params)
+            model = Pipeline(transformers=pr, classifier=c)
+            best_score, best_act_score, best_model = CVMinDCF(X=X, y=y, model=model, pi=pi)
+            print(f'{c}\t\t & {best_act_score:.3f}\t & {best_score:.3f}')
+

@@ -34,6 +34,8 @@ class TransformerBase(ABC):
     def __len__(self): # Needed for pipeline
         return 1
 
+    def __str__(self): # Needed for gridCV
+        return self.__class__.__name__
 
 class ClassifierBase(ABC):
     @abstractmethod
@@ -50,6 +52,9 @@ class ClassifierBase(ABC):
 
     def score(self, X, y, metric=accuracy_score):
         return metric(y, self.predict(X))
+
+    def __str__(self): # Needed for gridCV
+        return self.__class__.__name__
 
 
 def train_test_split(X, y, test_size, seed=0):
@@ -142,8 +147,9 @@ def logpdf_GMM(X, gmm):
     return loglikelihood, responsibilities
 
 def empirical_bayes_risk(cm, pi=.5, cfn=1, cfp=1):
-    fnr = cm[0, 1] / (cm[0, 1] + cm[1, 1])
-    fpr = cm[1, 0] / (cm[1, 0] + cm[0, 0])
+    with np.errstate(invalid='ignore'):
+        fnr = cm[0, 1] / (cm[0, 1] + cm[1, 1])
+        fpr = cm[1, 0] / (cm[1, 0] + cm[0, 0])
     return pi * cfn * fnr + (1 - pi) * cfp * fpr
 
 

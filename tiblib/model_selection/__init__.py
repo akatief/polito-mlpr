@@ -1,8 +1,9 @@
-from .cv import Kfold, CVMinDCF, CVCalibration
+from .cv import Kfold, CVMinDCF, CVCalibration, grid_cv
 
 
 __all__ = [
     'Kfold',
     'CVMinDCF',
-    'CVCalibration'
+    'CVCalibration',
+    'grid_cv'
 ]
