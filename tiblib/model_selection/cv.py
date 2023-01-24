@@ -67,7 +67,7 @@ class CVMinDCF:
 
             val_scores = self.model.predict_scores(X_val, get_ratio=True)
             score, _ = min_detection_cost_func(val_scores, y_val, pi=self.pi)
-            act_score, _ = detection_cost_func(val_scores, y_val, pi=self.pi)
+            act_score = detection_cost_func(val_scores, y_val, pi=self.pi)
             self.scores.append(score)
             if score < self.best_score:
                 self.best_score = score
@@ -113,8 +113,10 @@ class CVCalibration:
             val_scores = self.model.predict_scores(X_val, get_ratio=True)
             cal_scores = calibrate(val_scores, y_val, self._lambda, self.pi)
             score, _ = min_detection_cost_func(cal_scores, y_val, pi=self.pi)
+            act_score = detection_cost_func(val_scores, y_val, pi=self.pi)
             self.scores.append(score)
             if score < self.best_score:
                 self.best_score = score
+                self.act_score = act_score
                 self.best_model = deepcopy(self.model)
-        return self.best_score, self.best_model
+        return self.best_score, self.best_model, self.act_score
