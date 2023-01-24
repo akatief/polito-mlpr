@@ -5,7 +5,15 @@ from tiblib import load_iris_multiclass, train_test_split
 
 
 class SVC:
-	def __init__(self, C=1.0, K= 1.0):
+	def __init__(self, C=1.0, K=1.0, kernel='linear', c=0, d=0, gamma=0):
+		self.x = None
+		self.k = None
+		self.z = None
+		self.alpha = None
+		self.gamma = gamma
+		self.d = d
+		self.c = c
+		self.kernel = kernel
 		self.W = None
 		self.b = None
 		self.K = K
@@ -15,52 +23,49 @@ class SVC:
 		n_samples, n_features = X.shape
 		# Initialize the primal variables
 		alpha = np.zeros(n_samples)
-		# Initialize the kernel matrix
 		X = X.T
-		x_r = np.vstack((X, np.full(n_samples, self.C)))
-		z = np.where(y == 1, 1, -1)
-		H = x_r.T @ x_r * z.reshape((-1, 1)) * z
+		self.x = X
+		x_r = np.vstack((X, np.full(n_samples, self.K)))
+
+		# Initialize the kernel matrix
+		if self.kernel == 'linear':
+			self.k = x_r.T @ x_r
+		else:
+			self.k = self._kern(X, X, self.kernel)
+		self.z = np.where(y == 1, 1, -1)
+		H = self.k * self.z.reshape((-1, 1)) * self.z
 
 		# Define the optimization function
 		def objective(alpha):
 			return 0.5 * alpha.T @ H @ alpha - np.sum(alpha), (H @ alpha - 1).reshape(n_samples)
 
-		def obj_primal(w):
-			0.5 * np.square(np.linalg.norm(w)) + self.C * np.sum(np.maximum(0, 1 - z*(w.T @ x_r))), np.linalg.norm(w) + self.C * np.sum(np.maximum(0, -z*x_r))
-
 		# Define the bounds
 		bounds = [(0, self.C) for _ in range(n_samples)]
 
 		# Optimize the primal variables using scipy's fmin_l_bfgs_b function
-		result = fmin_l_bfgs_b(objective, alpha, bounds=bounds, approx_grad = False, factr=1.)[0]
+		self.alpha = fmin_l_bfgs_b(objective, alpha, bounds=bounds, approx_grad=False, factr=1.)[0]
 
-		res = np.sum(result * z * x_r, 1)
+		res = np.sum(self.alpha * self.z * x_r, 1)
 		self.b = res[-1]
 		self.W = res[:-1]
-		result2 = fmin_l_bfgs_b(obj_primal, res, approx_grad = False, factr=1.)[0]
-		print(result2 + result)
 
 	def predict(self, X):
-		predictions = np.heaviside(self.W.T @ X.T + self.b * self.C, 0)
-		return predictions
+		if self.kernel == 'linear':
+			predictions = self.W.T @ X.T + self.b * self.C
+		else:
+			predictions = (self.alpha * self.z) @ self._kern(self.x, X.T, self.kernel)
+		return np.heaviside(predictions, 0)
 
-
-if __name__ == '__main__':
-	# Create a toy dataset
-	X, y = load_iris_multiclass()
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
-	NOT_CLASS = 2
-	# Create an instance of the SVC class
-	clf = SVC()
-	mask = y_train != NOT_CLASS
-	y_train[y_train == 2] = NOT_CLASS
-	# Fit the classifier to the data
-	clf.fit(X_train[mask], y_train[mask])
-
-	# Predict the labels for a new set of inputs
-	mask = y_test != NOT_CLASS
-	y_test[y_test == 2] = NOT_CLASS
-	predictions = clf.predict(X_test[mask])
-	print(predictions)
-	print((predictions == y_test[mask]).mean())
-
+	def _kern(self, x1, x2, ker_type):
+		if ker_type == 'poly':
+			return np.power(x1.T @ x2 + self.c, self.d) + self.K ** 2
+		elif ker_type == 'radial':
+			# return np.exp(-self.gamma * np.square(np.linalg.norm(x1.T-x2.T))) + self.K ** 2
+			kern = np.zeros([x1.shape[1], x2.shape[1]])
+			for i in range(x1.shape[1]):
+				for j in range(x2.shape[1]):
+					norm = ((x1[:, i] - x2[:, j]) ** 2).sum()
+					kern[i, j] = np.exp(-self.gamma * norm) + self.K
+			return kern
+		else:
+			raise ValueError(f"{self.kernel} is not a valid kernel type, valid type are: 'linear', 'poly', 'radial'")
