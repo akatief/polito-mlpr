@@ -1,10 +1,9 @@
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
+from tiblib import ClassifierBase
 
-from tiblib import load_iris_multiclass, train_test_split
 
-
-class SVC:
+class SVC(ClassifierBase):
 	def __init__(self, C=1.0, K=1.0, kernel='linear', c=0, d=0, gamma=0):
 		self.x = None
 		self.k = None
@@ -50,10 +49,7 @@ class SVC:
 		self.W = res[:-1]
 
 	def predict(self, X):
-		if self.kernel == 'linear':
-			predictions = self.W.T @ X.T + self.b * self.C
-		else:
-			predictions = (self.alpha * self.z) @ self._kern(self.x, X.T, self.kernel)
+		predictions = self.predict_scores(X)
 		return np.heaviside(predictions, 0)
 
 	def _kern(self, x1, x2, ker_type):
@@ -69,3 +65,10 @@ class SVC:
 			return kern
 		else:
 			raise ValueError(f"{self.kernel} is not a valid kernel type, valid type are: 'linear', 'poly', 'radial'")
+
+	def predict_scores(self, X, get_ratio=False):
+		if self.kernel == 'linear':
+			score = self.W.T @ X.T + self.b * self.C
+		else:
+			score = (self.alpha * self.z) @ self._kern(self.x, X.T, self.kernel)
+		return score
