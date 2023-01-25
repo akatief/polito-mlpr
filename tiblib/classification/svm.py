@@ -4,7 +4,7 @@ from tiblib import ClassifierBase
 
 
 class SVC(ClassifierBase):
-	def __init__(self, C=1.0, K=1.0, kernel='linear', c=0, d=0, gamma=0):
+	def __init__(self, C=1.0, K=1.0, kernel='linear', c=0, d=0, gamma=0, pi=0.5):
 		self.x = None
 		self.k = None
 		self.z = None
@@ -17,6 +17,7 @@ class SVC(ClassifierBase):
 		self.b = None
 		self.K = K
 		self.C = C
+		self.pi = pi
 
 	def fit(self, X, y):
 		n_samples, n_features = X.shape
@@ -39,7 +40,7 @@ class SVC(ClassifierBase):
 			return 0.5 * alpha.T @ H @ alpha - np.sum(alpha), (H @ alpha - 1).reshape(n_samples)
 
 		# Define the bounds
-		bounds = [(0, self.C) for _ in range(n_samples)]
+		bounds = self._define_bounds(X, y)
 
 		# Optimize the primal variables using scipy's fmin_l_bfgs_b function
 		self.alpha = fmin_l_bfgs_b(objective, alpha, bounds=bounds, approx_grad=False, factr=1.)[0]
@@ -51,6 +52,20 @@ class SVC(ClassifierBase):
 	def predict(self, X):
 		predictions = self.predict_scores(X)
 		return np.heaviside(predictions, 0)
+
+	def _define_bounds(self, X, y):
+		n_feats, n_samples = X.shape
+		n_labels = len(np.unique(y))
+		if n_labels != 2:
+			bounds = [(0, self.C) for i in range(n_samples)]
+		else: # Class balancing
+			pi_emp = sum(y == 1) / y.shape[0]
+			bounds = np.zeros([n_samples, 2])
+			Ct = self.C * self.pi / pi_emp
+			Cf = self.C * (1 - self.pi) / (1 - pi_emp)
+			bounds[y == 1, 1] = Ct
+			bounds[y == 0, 1] = Cf
+		return bounds
 
 	def _kern(self, x1, x2, ker_type):
 		if ker_type == 'poly':
