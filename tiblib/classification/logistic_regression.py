@@ -6,12 +6,13 @@ from scipy.special import logsumexp
 
 
 class LogisticRegression(ClassifierBase):
-    def __init__(self, l=1):
+    def __init__(self, l=1, pi=0.5):
         self.l = l  # Regularization term
         self.w = None
         self.b = None
         self.f_min = None
         self.n_labels = None
+        self.pi = pi
 
     def __str__(self):
         return f'LogReg ($\\lambda = {self.l}$)'
@@ -25,10 +26,17 @@ class LogisticRegression(ClassifierBase):
             w, b = p[:-1], p[-1]
             regularization = 0.5 * self.l * np.linalg.norm(w, 2) ** 2
             boundary = (w.T @ X + b)
-            zi = y * 2 - 1
-            # Uses logaddexp to sum 1 + exp(...) avoiding numerical issues
-            summation = np.sum(np.logaddexp(0, -zi * boundary)) / n_samples
-            return regularization + summation
+
+            positives = boundary[y == 1]
+            negatives = boundary[y == 0]
+
+            n_pos = positives.shape[0]
+            n_neg = negatives.shape[0]
+
+            sum_pos = self.pi / n_pos * np.sum(np.logaddexp(0, - positives))
+            sum_neg = (1 - self.pi) / n_neg * np.sum(np.logaddexp(0, negatives))
+
+            return regularization + sum_pos + sum_neg
 
         p_optim, self.f_min, _ = fmin_l_bfgs_b(objective, p_init, approx_grad=True)
         self.w = p_optim[:-1]
