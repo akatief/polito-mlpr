@@ -66,7 +66,7 @@ class SVC(ClassifierBase):
 		else:
 			raise ValueError(f"{self.kernel} is not a valid kernel type, valid type are: 'linear', 'poly', 'radial'")
 
-	def predict_score(self, X, get_ratio=False):
+	def predict_scores(self, X, get_ratio=False):
 		if self.kernel == 'linear':
 			score = self.W.T @ X.T + self.b * self.C
 		else:
