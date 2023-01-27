@@ -5,6 +5,13 @@ from tiblib import ClassifierBase
 from scipy.special import logsumexp
 
 
+def quadratic_transform(X):
+    # calculate all pairwise combinations of features
+    quadratic_features = np.array([X[:, i] * X[:, j] for i in range(X.shape[1]) for j in range(i, X.shape[1])]).T
+    # concatenate the quadratic features with the original features
+    return np.concatenate((X, quadratic_features), axis=1)
+
+
 class LogisticRegression(ClassifierBase):
     def __init__(self, l=1, pi=0.5):
         self.l = l  # Regularization term
@@ -99,3 +106,16 @@ class LogisticRegression(ClassifierBase):
         else:
             y_pred = np.argmax(score, axis=0)
             return y_pred
+
+
+class QuadraticLogisticRegression(LogisticRegression):
+    def __str__(self):
+        return f'QuadLogReg ($\\lambda = {self.l}$)'
+
+    def fit(self, X, y):
+        X = quadratic_transform(X)
+        return super().fit(X, y)
+
+    def predict_scores(self, X, get_ratio=False):
+        X = quadratic_transform(X)
+        return super().predict_scores(X, get_ratio)

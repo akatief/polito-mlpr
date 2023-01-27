@@ -175,7 +175,7 @@ def confusion_matrix(y_true, y_pred):
     matrix = np.zeros((n_labels, n_labels))
     for i in range(n_labels):
         for j in range(n_labels):
-            matrix[i, j] = np.sum((y_true == i) & (y_pred == j))
+            matrix[i, j] = np.sum((y_pred == i) & (y_true == j))
     return matrix
 
 def min_detection_cost_func(score, y_true, pi=.5, cfn=1, cfp=1):

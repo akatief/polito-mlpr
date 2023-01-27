@@ -18,3 +18,6 @@ class PCA(TransformerBase):
             raise ValueError('PCA was not fitted on any data!')
         X = X.T
         return (self.princ_comps.T @ X).T
+
+    def __str__(self):
+        return f'PCA (d={self.n_dims})'

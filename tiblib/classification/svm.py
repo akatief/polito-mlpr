@@ -5,6 +5,7 @@ from tiblib import ClassifierBase
 
 class SVC(ClassifierBase):
 	def __init__(self, C=1.0, K=1.0, kernel='linear', c=0, d=0, gamma=0, pi=0.5):
+		assert kernel == 'linear' or kernel == 'radial' or kernel == 'poly', f"{kernel} is not a valid kernel type, valid types are: 'linear', 'poly', 'radial'"
 		self.x = None
 		self.k = None
 		self.z = None
@@ -18,6 +19,15 @@ class SVC(ClassifierBase):
 		self.K = K
 		self.C = C
 		self.pi = pi
+
+	def __str__(self):
+		if self.kernel == 'linear':
+			return f'SVC (Linear, $C = {self.C}$)'
+		elif self.kernel == 'poly':
+			return f'SVC (Poly, $C = {self.C}$)'
+		elif self.kernel == 'radial':
+			return f'SVC (RBF, $C = {self.C}$)'
+
 
 	def fit(self, X, y):
 		n_samples, n_features = X.shape
@@ -79,7 +89,7 @@ class SVC(ClassifierBase):
 					kern[i, j] = np.exp(-self.gamma * norm) + self.K
 			return kern
 		else:
-			raise ValueError(f"{self.kernel} is not a valid kernel type, valid type are: 'linear', 'poly', 'radial'")
+			raise ValueError(f"{self.kernel} is not a valid kernel type, valid types are: 'linear', 'poly', 'radial'")
 
 	def predict_scores(self, X, get_ratio=False):
 		if self.kernel == 'linear':

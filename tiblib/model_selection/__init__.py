@@ -1,9 +1,10 @@
-from .cv import Kfold, CVMinDCF, CVCalibration, grid_cv
+from .cv import Kfold, CVMinDCF, CVFusion, grid_cv, grid_cv_multiprior
 
 
 __all__ = [
     'Kfold',
     'CVMinDCF',
-    'CVCalibration',
-    'grid_cv'
+    'CVFusion',
+    'grid_cv',
+    'grid_cv_multiprior'
 ]

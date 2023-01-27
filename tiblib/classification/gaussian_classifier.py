@@ -16,13 +16,13 @@ class GaussianClassifier(ClassifierBase):
 
 	def __str__(self):
 		if self.naive and self.tied:
-			return 'GaussianClassifier (Naive, Tied)'
+			return 'Naive, Tied'
 		elif self.naive:
-			return 'GaussianClassifier (Naive)'
+			return 'Naive'
 		elif self.tied:
-			return 'GaussianClassifier (Tied)'
+			return 'Tied'
 		else:
-			return 'GaussianClassifier'
+			return 'Full'
 
 	def fit(self, X, y):
 		X = X.T

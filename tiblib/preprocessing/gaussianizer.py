@@ -20,7 +20,7 @@ class Gaussianizer(TransformerBase):
         transformed = np.empty([n_feats, n_samples])
         _, n_samples_train = self.X_train.shape
         for i in range(n_samples):
-            rank = (1 + np.sum(X[:, i].reshape([n_feats, 1]) < self.X_train, axis=1)).astype(np.float)
+            rank = (1 + np.sum(X[:, i].reshape([n_feats, 1]) < self.X_train, axis=1)).astype(float)
             rank /= (n_samples_train + 2)
             transformed[:, i] = norm.ppf(rank)
         return transformed.T
