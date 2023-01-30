@@ -9,9 +9,10 @@ from tiblib import min_detection_cost_func, detection_cost_func
 from tiblib.classification import LogisticRegression, Pipeline
 
 
-def calibrate(score, y_true, _lambda, pi=0.5):
+def calibrate(score_train, score_test, y_train, _lambda, pi=0.5):
     lr = LogisticRegression(l=_lambda)
-    lr.fit(score.reshape(-1,1), y_true)
+    lr.fit(score_train.reshape(-1,1), y_train)
+    score = lr.predict_scores(score_test.reshape(-1,1), get_ratio=True)
     alpha = lr.w
     beta_p = lr.b
     cal_score = alpha * score + beta_p - np.log(pi / (1 - pi))
@@ -53,12 +54,12 @@ def CVMinDCF(model, X, y, K=5, pi=.5, calibration=False, _lambda=1e-3):
         model.fit(X_train, y_train)
         val_scores = model.predict_scores(X_val, get_ratio=True)
         if calibration:
-            val_scores = calibrate(val_scores, y_val, _lambda, pi)
+            val_scores = calibrate(val_scores, val_scores, y_val, _lambda, pi)
         scores[val_indices] = val_scores
 
     min_dcf, _ = min_detection_cost_func(scores, y, pi=pi)
     act_dcf = detection_cost_func(scores, y, pi=pi)
-    return min_dcf, act_dcf
+    return min_dcf, act_dcf, scores
 
 
 def CVFusion(models, X, y, K=5, pi=.5, _lambda=1e-3):
@@ -98,6 +99,57 @@ def CVFusion(models, X, y, K=5, pi=.5, _lambda=1e-3):
     return min_dcf, act_dcf, fused_score
 
 
+def Calibrate(model, X, y, K=5, pi=.5, _lambda=1e-3):
+    if X.shape[0] < X.shape[1]:
+        warnings.warn(f'Samples in X should be rows. Are you sure the dataset is not transposed? Size: {X.shape}')
+    scores = np.empty(X.shape[0]) # Will store scores for the KFold
+    cal_scores = np.empty(X.shape[0]) # Will store scores for the KFold
+
+    n = X.shape[0]
+    indices = np.arange(n)
+    np.random.shuffle(indices)
+    fold_size = int(n / K)
+    for i in range(K): # Score computing
+        val_indices = indices[i * fold_size:(i + 1) * fold_size]
+        train_indices = np.setdiff1d(indices, val_indices)
+        X_train, y_train = X[train_indices], y[train_indices]
+        X_val, y_val = X[val_indices], y[val_indices]
+
+        model.fit(X_train, y_train)
+        val_scores = model.predict_scores(X_val, get_ratio=True)
+        scores[val_indices] = val_scores
+        val_scores = calibrate(val_scores, val_scores, y_val, _lambda, pi)
+        cal_scores[val_indices] = val_scores
+    min_dcf, _ = min_detection_cost_func(scores, y, pi=pi)
+    act_dcf = detection_cost_func(scores, y, pi=pi)
+    cal_dcf = detection_cost_func(cal_scores, y, pi=pi)
+    return min_dcf, act_dcf, cal_dcf, scores, cal_scores
+
+
+def Fusion(scores, y, K=5, pi=.5, _lambda=1e-3):
+    assert scores.shape[1] > 1, 'Fusion needs at least 2 models to work'
+    if scores.shape[0] < scores.shape[1]:
+        warnings.warn(f'Samples in X should be rows. Are you sure the dataset is not transposed? Size: {scores.shape}')
+    fused_score = np.empty(scores.shape[0])
+
+    n = scores.shape[0]
+    indices = np.arange(n)
+    np.random.shuffle(indices)
+    fold_size = int(n / K)
+    for i in range(K):
+        val_indices = indices[i * fold_size:(i + 1) * fold_size]
+        train_indices = np.setdiff1d(indices, val_indices)
+        scores_train, y_train = scores[train_indices], y[train_indices]
+        scores_val, y_val = scores[val_indices], y[val_indices]
+        lr = LogisticRegression(l=_lambda)
+        lr.fit(scores_train, y_train)
+
+        val_scores = lr.predict_scores(scores_val, get_ratio=True)
+        fused_score[val_indices] = val_scores
+
+    min_dcf, _ = min_detection_cost_func(fused_score, y, pi=pi)
+    act_dcf = detection_cost_func(fused_score, y, pi=pi)
+    return min_dcf, act_dcf, fused_score
 
 def grid_cv(X, y, pi, preprocessing, classifier, hyperparams, filename):
     keys, values = zip(*hyperparams.items())
@@ -106,7 +158,7 @@ def grid_cv(X, y, pi, preprocessing, classifier, hyperparams, filename):
     for params in combinations:
         c = classifier(**params)
         model = Pipeline(transformers=preprocessing, classifier=c)
-        best_score, best_act_score = CVMinDCF(X=X, y=y, model=model, pi=pi)
+        best_score, best_act_score, _ = CVMinDCF(X=X, y=y, model=model, pi=pi)
         print(f'{c}\t\t & {best_act_score:.3f}\t & {best_score:.3f}')
         results.append({'Model' : str(c),
                         'Min DCF' : best_score,
@@ -127,7 +179,7 @@ def grid_cv_multiprior(X, y, pis, preprocessing, classifier, hyperparams, filena
         c = classifier(**params)
         model = Pipeline(transformers=preprocessing, classifier=c)
         for pi in pis:
-            best_score, best_act_score = CVMinDCF(X=X, y=y, model=model, pi=pi)
+            best_score, best_act_score, _ = CVMinDCF(X=X, y=y, model=model, pi=pi)
             pi_min_dcf.append(best_score)
             results.append({'Prior' : pi,
                             'Model' : str(c),

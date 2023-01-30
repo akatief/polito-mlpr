@@ -1,2 +1,2 @@
-# polito-mlpr
-Repository for the code developed during the Machine Learning &amp; Pattern Recognition at PoliTo
+# Machine Learning and Pattern Recognition 
+Repository for the code developed during the Machine Learning and Pattern Recognition course at PoliTo

@@ -26,7 +26,7 @@ class SVC(ClassifierBase):
 		elif self.kernel == 'poly':
 			return f'SVC (Poly, $C = {self.C}$)'
 		elif self.kernel == 'radial':
-			return f'SVC (RBF, $C = {self.C}$)'
+			return f'SVC (RBF, $C = {self.C}$, $\gamma = {self.gamma}$)'
 
 
 	def fit(self, X, y):
