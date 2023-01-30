@@ -1,5 +1,4 @@
 import warnings
-from copy import deepcopy
 from itertools import product
 
 import numpy as np
