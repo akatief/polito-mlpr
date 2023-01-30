@@ -2,12 +2,12 @@ import json
 import warnings
 from abc import abstractmethod, ABC
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy
-from sklearn.metrics import accuracy_score
 from sklearn.datasets import load_iris
+from sklearn.metrics import accuracy_score
+
 
 def covariance(X):
     assert len(X.shape) == 2, 'X is not a 2D matrix'
